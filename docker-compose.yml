@@ -1,0 +1,11 @@
+services:
+  api:
+    build: .
+    image: task-manager-api
+    ports:
+      - "8001:8000"
+    volumes:
+      - db-data:/app/data
+
+volumes:
+  db-data:
