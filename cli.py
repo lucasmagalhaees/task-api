@@ -33,8 +33,15 @@ def load():
         "--users", args.users,
         "--spawn-rate", args.spawn_rate,
         "--run-time", args.time,
+        "--exit-code-on-error", "1",
         *extra,
     ])
+
+    if result.returncode == 0:
+        print("\n✅ Load test PASSED — no request failures.")
+    else:
+        print("\n❌ Load test FAILED — one or more requests returned errors.")
+
     sys.exit(result.returncode)
 
 

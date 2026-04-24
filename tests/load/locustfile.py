@@ -2,53 +2,45 @@
 Load tests: simulação de carga real contra o container Docker.
 Requer a aplicação rodando em localhost:8001 (`uv run up`).
 
+Foco: GET /tasks/{id} — leitura por ID que passa pelo cache Redis.
+Cada usuário fica N segundos batendo no mesmo ID (cache hit) e então
+rotaciona para o próximo (cache miss → DB → popula cache).
+
 Execução:
     uv run load                          # headless, 20 usuários, 30s
     uv run load --users 50 --time 60s    # customizado
 """
-import random
+import time
 
 from locust import HttpUser, between, task
 
+CYCLE_SECONDS = 10
+
 
 class TaskUser(HttpUser):
-    """Simula um usuário realizando operações típicas na API de tarefas."""
-
     wait_time = between(0.5, 2)
     host = "http://localhost:8001"
 
     def on_start(self):
         self._task_ids: list[int] = []
-        for i in range(3):
-            resp = self.client.post("/tasks", json={"title": f"Tarefa inicial {i}"})
+        self._current_idx = 0
+        self._rotated_at = time.monotonic()
+
+        for i in range(5):
+            resp = self.client.post("/tasks", json={"title": f"Tarefa de carga {i}"})
             if resp.status_code == 200:
                 self._task_ids.append(resp.json()["id"])
 
-    @task(10)
+    def _current_id(self) -> int | None:
+        if not self._task_ids:
+            return None
+        if time.monotonic() - self._rotated_at >= CYCLE_SECONDS:
+            self._current_idx = (self._current_idx + 1) % len(self._task_ids)
+            self._rotated_at = time.monotonic()
+        return self._task_ids[self._current_idx]
+
+    @task
     def get_task_by_id(self):
-        """Leitura por ID — exercita o cache."""
-        if self._task_ids:
-            task_id = random.choice(self._task_ids)
+        task_id = self._current_id()
+        if task_id:
             self.client.get(f"/tasks/{task_id}", name="/tasks/[id]")
-
-    @task(5)
-    def list_tasks(self):
-        self.client.get("/tasks")
-
-    @task(3)
-    def create_task(self):
-        resp = self.client.post("/tasks", json={"title": "Tarefa de carga"})
-        if resp.status_code == 200:
-            self._task_ids.append(resp.json()["id"])
-
-    @task(2)
-    def toggle_task(self):
-        if self._task_ids:
-            task_id = random.choice(self._task_ids)
-            self.client.put(f"/tasks/{task_id}/toggle", name="/tasks/[id]/toggle")
-
-    @task(1)
-    def delete_task(self):
-        if self._task_ids:
-            task_id = self._task_ids.pop(random.randrange(len(self._task_ids)))
-            self.client.delete(f"/tasks/{task_id}", name="/tasks/[id]")
