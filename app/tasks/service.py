@@ -1,7 +1,12 @@
+import os
+
+from openai import OpenAI
 from sqlalchemy.orm import Session
 
 from app.cache import cache
 from . import models, schemas
+
+_openai = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 
 def list_tasks(db: Session):
@@ -52,3 +57,40 @@ def delete_task(db: Session, task: models.Task):
     cache.delete(task.id)
     db.delete(task)
     db.commit()
+
+
+def get_task_consulting(task: models.Task) -> schemas.ConsultingResponse:
+    cache_key = f"consulting:{task.id}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return schemas.ConsultingResponse(**cached)
+
+    context = f"Title: {task.title}"
+    if task.description:
+        context += f"\nDescription: {task.description}"
+
+    response = _openai.chat.completions.create(
+        model="gpt-4o-mini",
+        max_tokens=1024,
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are a productivity assistant. "
+                    "Given a task, return a concise, numbered action plan (maximum 5 steps) "
+                    "to complete it. Respond only with the action plan, no preamble."
+                ),
+            },
+            {"role": "user", "content": context},
+        ],
+    )
+
+    action_plan = response.choices[0].message.content
+
+    result = schemas.ConsultingResponse(
+        task_id=task.id,
+        title=task.title,
+        action_plan=action_plan,
+    )
+    cache.set(cache_key, result.model_dump())
+    return result

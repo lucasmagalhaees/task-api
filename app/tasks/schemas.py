@@ -8,6 +8,12 @@ class TaskCreate(BaseModel):
     done: bool = False
 
 
+class ConsultingResponse(BaseModel):
+    task_id: int
+    title: str
+    action_plan: str
+
+
 class TaskResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

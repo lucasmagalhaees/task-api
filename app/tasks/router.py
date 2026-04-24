@@ -26,6 +26,16 @@ def get_task(task_id: int, db: Session = Depends(get_db)):
     return task
 
 
+@router.get("/{task_id}/consulting", response_model=schemas.ConsultingResponse)
+def consulting(task_id: int, db: Session = Depends(get_db)):
+    task = service.get_task(db, task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    if not task.description and not task.title:
+        raise HTTPException(status_code=422, detail="Task has no content to consult on")
+    return service.get_task_consulting(task)
+
+
 @router.put("/{task_id}", response_model=schemas.TaskResponse)
 def update_task(task_id: int, data: schemas.TaskCreate, db: Session = Depends(get_db)):
     task = service.get_task(db, task_id)

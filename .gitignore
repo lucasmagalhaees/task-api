@@ -26,6 +26,9 @@ data/
 .vscode/
 .idea/
 
+# Variáveis de ambiente (contém secrets)
+.env
+
 # OS
 .DS_Store
 Thumbs.db

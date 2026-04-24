@@ -111,6 +111,27 @@ paths:
         "404":
           description: Task not found
 
+  /tasks/{task_id}/consulting:
+    get:
+      summary: Generate an action plan for a task using AI
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Action plan generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConsultingResponse"
+        "404":
+          description: Task not found
+        "422":
+          description: Task has no description to consult on
+
   /tasks/{task_id}/toggle:
     put:
       summary: Toggle the done status of a task
@@ -146,6 +167,16 @@ components:
         done:
           type: boolean
           default: false
+
+    ConsultingResponse:
+      type: object
+      properties:
+        task_id:
+          type: integer
+        title:
+          type: string
+        action_plan:
+          type: string
 
     TaskResponse:
       type: object
