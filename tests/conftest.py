@@ -4,9 +4,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from app.cache import cache
 from app.database import Base, get_db
 from app.main import app
-from app.tasks.service import _task_cache
 
 TEST_DB_URL = "sqlite:///:memory:"
 engine_test = create_engine(
@@ -19,7 +19,7 @@ TestingSession = sessionmaker(autocommit=False, autoflush=False, bind=engine_tes
 
 @pytest.fixture
 def client():
-    _task_cache.clear()
+    cache.clear()
     Base.metadata.create_all(bind=engine_test)
 
     def override_get_db():
@@ -36,4 +36,4 @@ def client():
 
     app.dependency_overrides.clear()
     Base.metadata.drop_all(bind=engine_test)
-    _task_cache.clear()
+    cache.clear()

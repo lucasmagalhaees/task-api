@@ -20,7 +20,7 @@ def list_tasks(db: Session = Depends(get_db)):
 
 @router.get("/{task_id}", response_model=schemas.TaskResponse)
 def get_task(task_id: int, db: Session = Depends(get_db)):
-    task = service.get_task(db, task_id)
+    task = service.get_task_cached(db, task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     return task
