@@ -1,10 +1,10 @@
+
 from pydantic import BaseModel, ConfigDict, Field
-from typing import Optional
 
 
 class TaskCreate(BaseModel):
     title: str = Field(min_length=1)
-    description: Optional[str] = None
+    description: str | None = None
     done: bool = False
 
 
@@ -19,5 +19,5 @@ class TaskResponse(BaseModel):
 
     id: int
     title: str
-    description: Optional[str]
+    description: str | None
     done: bool

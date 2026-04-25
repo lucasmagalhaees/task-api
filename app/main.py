@@ -1,7 +1,8 @@
 import os
+
 from fastapi import FastAPI
 
-from app.database import engine, Base
+from app.database import Base, engine
 from app.tasks import models  # noqa: F401 — registers models with Base
 from app.tasks.router import router as tasks_router
 

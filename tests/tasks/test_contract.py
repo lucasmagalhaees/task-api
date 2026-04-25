@@ -2,9 +2,10 @@
 Contract tests: validate that API responses conform to the schema
 defined in specs/tasks.yaml.
 """
-import yaml
-import pytest
 from pathlib import Path
+
+import pytest
+import yaml
 
 SPEC_PATH = Path(__file__).parent.parent.parent / "specs" / "tasks.yaml"
 
@@ -49,14 +50,20 @@ def test_contract_get_task_by_id(client, spec):
 
 def test_contract_404_returns_detail(client, spec):
     for endpoint in ["/tasks/999", "/tasks/999/toggle"]:
-        response = client.get(endpoint) if "toggle" not in endpoint else client.put(endpoint)
+        if "toggle" not in endpoint:
+            response = client.get(endpoint)
+        else:
+            response = client.put(endpoint)
         assert response.status_code == 404
-        assert "detail" in response.json(), f"{endpoint} did not return 'detail' on error"
+        msg = f"{endpoint} did not return 'detail' on error"
+        assert "detail" in response.json(), msg
 
 
 def test_contract_put_task(client, spec):
     created = client.post("/tasks", json={"title": "Old"}).json()
-    response = client.put(f"/tasks/{created['id']}", json={"title": "New", "done": True})
+    response = client.put(
+        f"/tasks/{created['id']}", json={"title": "New", "done": True}
+    )
     assert response.status_code == 200
     assert_task_response(response.json(), spec)
 

@@ -4,9 +4,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from app.database import SessionLocal, engine
+from app.database import Base, SessionLocal, engine
 from app.tasks.models import Task
-from app.database import Base
 
 TITLES = [
     "Revisar pull requests pendentes",
@@ -32,7 +31,8 @@ TITLES = [
 ]
 
 DESCRIPTIONS = [
-    "Verificar se todos os comentários foram respondidos e aprovações necessárias foram dadas.",
+    "Verificar se todos os comentários foram respondidos "
+    "e aprovações necessárias foram dadas.",
     "Atualizar o README e os exemplos de uso com as mudanças recentes.",
     "Cobrir os cenários de erro e borda que ainda não estão testados.",
     "Automatizar build, testes e deploy para o ambiente de homologação.",

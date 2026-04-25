@@ -1,8 +1,8 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
 
 from app.database import get_db
+
 from . import schemas, service
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
@@ -13,7 +13,7 @@ def create_task(data: schemas.TaskCreate, db: Session = Depends(get_db)):
     return service.create_task(db, data)
 
 
-@router.get("", response_model=List[schemas.TaskResponse])
+@router.get("", response_model=list[schemas.TaskResponse])
 def list_tasks(db: Session = Depends(get_db)):
     return service.list_tasks(db)
 
@@ -31,8 +31,10 @@ def consulting(task_id: int, db: Session = Depends(get_db)):
     task = service.get_task(db, task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
-    if not task.description and not task.title:
-        raise HTTPException(status_code=422, detail="Task has no content to consult on")
+    if not task.description:
+        raise HTTPException(
+            status_code=422, detail="Task has no description to consult on"
+        )
     return service.get_task_consulting(task)
 
 

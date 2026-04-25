@@ -21,7 +21,10 @@ def load():
     try:
         httpx.get("http://localhost:8001", timeout=2)
     except (httpx.ConnectError, httpx.ConnectTimeout):
-        print("Aplicação não está rodando em localhost:8001. Execute `uv run python -m cli up` primeiro.")
+        print(
+            "Aplicação não está rodando em localhost:8001. "
+            "Execute `uv run python -m cli up` primeiro."
+        )
         sys.exit(1)
 
     args, extra = _parse_load_args()

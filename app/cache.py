@@ -33,7 +33,8 @@ class RedisCache:
     def get(self, key: int | str) -> dict | None:
         value = self._client.get(f"task:{key}")
         if value:
-            return json.loads(value)
+            result: dict = json.loads(value)
+            return result
         return None
 
     def set(self, key: int | str, value: dict) -> None:

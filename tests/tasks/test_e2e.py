@@ -3,8 +3,8 @@ E2E tests: real HTTP requests against the Docker container.
 Requires the container running at localhost:8001 (`uv run up`).
 Automatically skipped if the server is not reachable.
 """
-import pytest
 import httpx
+import pytest
 
 BASE_URL = "http://localhost:8001"
 
@@ -29,7 +29,7 @@ def test_e2e_full_flow():
     response = httpx.post(f"{BASE_URL}/tasks", json={"title": "E2E Task"})
     assert response.status_code == 200
     task_id = response.json()["id"]
-    assert response.json()["done"] == False
+    assert not response.json()["done"]
 
     try:
         response = httpx.get(f"{BASE_URL}/tasks/{task_id}")
@@ -38,11 +38,11 @@ def test_e2e_full_flow():
 
         response = httpx.put(f"{BASE_URL}/tasks/{task_id}/toggle")
         assert response.status_code == 200
-        assert response.json()["done"] == True
+        assert response.json()["done"]
 
         response = httpx.put(f"{BASE_URL}/tasks/{task_id}/toggle")
         assert response.status_code == 200
-        assert response.json()["done"] == False
+        assert not response.json()["done"]
 
         response = httpx.put(
             f"{BASE_URL}/tasks/{task_id}",

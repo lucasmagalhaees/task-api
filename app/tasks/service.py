@@ -4,9 +4,17 @@ from openai import OpenAI
 from sqlalchemy.orm import Session
 
 from app.cache import cache
+
 from . import models, schemas
 
-_openai = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+_openai: OpenAI | None = None
+
+
+def _get_openai() -> OpenAI:
+    global _openai
+    if _openai is None:
+        _openai = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+    return _openai
 
 
 def list_tasks(db: Session):
@@ -69,7 +77,7 @@ def get_task_consulting(task: models.Task) -> schemas.ConsultingResponse:
     if task.description:
         context += f"\nDescription: {task.description}"
 
-    response = _openai.chat.completions.create(
+    response = _get_openai().chat.completions.create(
         model="gpt-4o-mini",
         max_tokens=1024,
         messages=[
@@ -77,7 +85,8 @@ def get_task_consulting(task: models.Task) -> schemas.ConsultingResponse:
                 "role": "system",
                 "content": (
                     "You are a productivity assistant. "
-                    "Given a task, return a concise, numbered action plan (maximum 5 steps) "
+                    "Given a task, return a concise, numbered "
+                    "action plan (maximum 5 steps) "
                     "to complete it. Respond only with the action plan, no preamble."
                 ),
             },
@@ -85,7 +94,7 @@ def get_task_consulting(task: models.Task) -> schemas.ConsultingResponse:
         ],
     )
 
-    action_plan = response.choices[0].message.content
+    action_plan = response.choices[0].message.content or ""
 
     result = schemas.ConsultingResponse(
         task_id=task.id,

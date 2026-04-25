@@ -1,3 +1,6 @@
+from unittest.mock import MagicMock, patch
+
+
 def test_home(client):
     response = client.get("/")
     assert response.status_code == 200
@@ -11,12 +14,14 @@ def test_create_task(client):
     assert response.status_code == 200
     data = response.json()
     assert data["title"] == "Study TDD"
-    assert data["done"] == False
+    assert not data["done"]
     assert "id" in data
 
 
 def test_create_task_with_description(client):
-    response = client.post("/tasks", json={"title": "With desc", "description": "Detail"})
+    response = client.post(
+        "/tasks", json={"title": "With desc", "description": "Detail"}
+    )
     assert response.status_code == 200
     assert response.json()["description"] == "Detail"
 
@@ -59,28 +64,31 @@ def test_get_task_not_found(client):
 
 def test_update_task(client):
     created = client.post("/tasks", json={"title": "Old"}).json()
-    response = client.put(f"/tasks/{created['id']}", json={"title": "New", "done": True})
+    response = client.put(
+        f"/tasks/{created['id']}", json={"title": "New", "done": True}
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["title"] == "New"
-    assert data["done"] == True
+    assert data["done"]
 
 
 def test_update_task_not_found(client):
-    assert client.put("/tasks/999", json={"title": "X", "done": False}).status_code == 404
+    result = client.put("/tasks/999", json={"title": "X", "done": False})
+    assert result.status_code == 404
 
 
 # --- PUT /tasks/{id}/toggle ---
 
 def test_toggle_status_to_true(client):
     created = client.post("/tasks", json={"title": "Toggle"}).json()
-    assert created["done"] == False
-    assert client.put(f"/tasks/{created['id']}/toggle").json()["done"] == True
+    assert not created["done"]
+    assert client.put(f"/tasks/{created['id']}/toggle").json()["done"]
 
 
 def test_toggle_status_to_false(client):
     created = client.post("/tasks", json={"title": "Toggle", "done": True}).json()
-    assert client.put(f"/tasks/{created['id']}/toggle").json()["done"] == False
+    assert not client.put(f"/tasks/{created['id']}/toggle").json()["done"]
 
 
 def test_toggle_status_not_found(client):
@@ -97,3 +105,44 @@ def test_delete_task(client):
 
 def test_delete_task_not_found(client):
     assert client.delete("/tasks/999").status_code == 404
+
+
+# --- GET /tasks/{id}/consulting ---
+
+def test_consulting_not_found(client):
+    assert client.get("/tasks/999/consulting").status_code == 404
+
+
+def test_consulting_no_description_returns_422(client):
+    created = client.post("/tasks", json={"title": "No desc"}).json()
+    assert client.get(f"/tasks/{created['id']}/consulting").status_code == 422
+
+
+def test_consulting_returns_action_plan(client):
+    created = client.post(
+        "/tasks", json={"title": "Setup CI", "description": "Configure pipeline"}
+    ).json()
+    mock_resp = MagicMock()
+    mock_resp.choices[0].message.content = "1. Step one\n2. Step two"
+    with patch("app.tasks.service._get_openai") as mock_fn:
+        mock_fn.return_value.chat.completions.create.return_value = mock_resp
+        response = client.get(f"/tasks/{created['id']}/consulting")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["task_id"] == created["id"]
+    assert data["title"] == "Setup CI"
+    assert data["action_plan"] == "1. Step one\n2. Step two"
+
+
+def test_consulting_cached(client):
+    created = client.post(
+        "/tasks", json={"title": "Cached", "description": "Some work"}
+    ).json()
+    mock_resp = MagicMock()
+    mock_resp.choices[0].message.content = "Cached plan"
+    with patch("app.tasks.service._get_openai") as mock_fn:
+        mock_fn.return_value.chat.completions.create.return_value = mock_resp
+        client.get(f"/tasks/{created['id']}/consulting")
+        response = client.get(f"/tasks/{created['id']}/consulting")
+    assert response.status_code == 200
+    assert mock_fn.return_value.chat.completions.create.call_count == 1
