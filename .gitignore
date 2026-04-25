@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+build/
+dist/
+wheels/
+*.egg-info
+
+# Ambiente virtual
+.venv/
+
+# Testes e cobertura
+.coverage
+.pytest_cache/
+htmlcov/
+
+# Banco de dados
+data/
+*.db
+
+# uv
+.python-version
+
+# IDE
+.vscode/
+.idea/
+
+# Variáveis de ambiente (contém secrets)
+.env
+
+# OS
+.DS_Store
+Thumbs.db
